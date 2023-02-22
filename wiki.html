@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+	<head>
+		<script type="application/javascript" src="jquery-ui-1.13.2/external/jquery/jquery.js"></script>
+		<script type="application/javascript" src="jquery-ui-1.13.2/jquery-ui.js"></script>
+		<link href="jquery-ui-1.13.2/jquery-ui.css" rel="stylesheet">
+		<title>Diagnostics and repair</title>
+		<style>
+			body{
+				min-width:400px;
+				margin:0;
+			}
+			header{
+				height:100px;
+				display:flex;
+				flex-wrap:wrap;
+				text-align:center;
+				align-items:center;
+				background-color:gray;
+			}
+			header>div{
+				display:flex;
+				width:200px;
+			}
+			header>a{
+				width:calc((100% - 200px)/3);
+			}
+			#logo{
+				cursor:pointer;
+				flex:auto;
+			}
+			#homepage{
+				flex:auto;
+			}
+			main{
+				height:calc(100vh - 100px);
+				display:flex;
+				flex-direction:row;
+			}
+			#sidePanel{
+				display:flex;
+				flex-direction:column;
+				width:200px;
+				position:relative;
+				background-color:gray;
+				flex:none;
+			}
+			#firmware{
+				vertical-align:middle;
+				width:400px;
+				height:200px;
+				padding:20px;
+				display:grid;
+				grid-template-columns:1fr 4fr;
+				row-gap:20px;
+				//grid-template-rows:
+			}
+			label{
+				display:flex;
+				align-items:center;
+			}
+		</style>
+	</head>
+	<body>
+		<header>	
+			<div><span id="logo">Logo</span><a href="1" id="homepage">Homepage</a></div>
+			<a href="2">Preliminary</a>
+			<a href="3">FRU firmware</a>
+			<a href="4">Repair notes</a>
+		</header>
+		<main>
+			<div id="sidePanel"></div>
+			<div>
+				<h1>Заголовок</h1>
+				тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст 
+				тупа текст тупа текст тупа текст тупа текст тупа текст тупа текст пупа лупа
+			</div>
+		</main>
+	</body>
+</html>

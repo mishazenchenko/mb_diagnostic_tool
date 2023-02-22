@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Logon page</title>
+		<style>
+			.form{
+				width:200px;
+			}
+			.form *{
+				font:1em sans-serif;
+				display:block;
+				padding:0px;
+				box-sizing:content-box;
+				width:100%%;
+			}
+			#errmessage{
+				color:red;
+				//display:none;
+			}
+		</style>
+	</head>
+	<body>
+		<form class="form" method="GET">
+			<label for="username">Username</label>
+			<input id="username" type="text" name="username"></input>
+			<label for="password">Password</label>
+			<input id="password" type="password" name="password"></input>
+			<button type="submit">Logon</button>
+			<span id="errmessage">
+				%(errmessage)s
+			</span>
+		</form>
+	</body>
+</html>

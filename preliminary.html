@@ -1,0 +1,703 @@
+<!doctype html>
+<html>
+	<head>
+		<script type="application/javascript" src="jquery-ui-1.13.2/external/jquery/jquery.js"></script>
+		<script type="application/javascript" src="jquery-ui-1.13.2/jquery-ui.js"></script>
+		<link href="jquery-ui-1.13.2/jquery-ui.css" rel="stylesheet">
+		<!-- <script type="text/javascript" src="static/mr92/checkpoints.json"></script> -->
+		<title>Preliminary</title>
+		<style>
+			body{
+				min-width:400px;
+				margin:0;
+			}
+			header{
+				height:100px;
+				display:flex;
+				flex-wrap:wrap;
+				text-align:center;
+				align-items:center;
+				background-color:gray;
+			}
+			header>div{
+				display:flex;
+				width:200px;
+			}
+			header>a{
+				width:calc((100% - 200px)/3);
+			}
+			#logo{
+				cursor:pointer;
+				flex:auto;
+			}
+			#homepage{
+				flex:auto;
+			}
+			main{
+				height:calc(100vh - 100px);
+				display:flex;
+				flex-direction:row;
+			}
+			#sidePanel{
+				display:flex;
+				flex-direction:column;
+				width:200px;
+				position:relative;
+				background-color:gray;
+				flex:none;
+			}
+			#board{
+				position:relative;
+				overflow:auto;
+				flex:auto;
+			}
+			#image{
+				display:block;
+				position:relative;
+				width:100%;
+				cursor:grab;
+			}
+			.grabbing{
+				cursor:grabbing !important;
+			}
+			#infoLayer{
+				width:100%;
+				position:relative;
+			}
+			.hidden{
+				display:none !important;
+			}
+			.fitted{
+				width:100% !important;
+			}
+			.my-hidden{
+				visibility:hidden;
+			}
+			.foldedMap{
+				width:100px !important;
+			}
+			#map .map-left-border{
+				position:absolute;
+				top:0;
+				left:-3px;
+				width:6px;
+				height:100%;
+				cursor:ew-resize;
+				//z-index:1;
+			}
+			#map .map-top-border{
+				position:absolute;
+				top:-3px;
+				left:0;
+				height:6px;
+				width:100%;
+				cursor:ns-resize;
+				//z-index:1;
+			}
+			#map .map-top-left-corner{
+				position:absolute;
+				top:-3px;
+				left:-3px;
+				width:6px;
+				height:6px;
+				cursor:nwse-resize;
+				//z-index:1;
+			}
+			.display-none{
+				display:none !important;
+			}
+			.no-close .ui-dialog-titlebar-close{
+				display:none;
+			}
+			.ckeckpointsList-marker:hover{
+				background-color:yellow;
+			}
+			#hideMap:hover,#flipMap:hover{
+				opacity:1 !important;
+			}
+			.folded
+			{
+				width:100px !important;
+			}
+			.folded #canvas,.folded img,.folded .map-top-border,.folded .map-left-border,.folded .map-top-left-corner
+			{
+				display:none !important;
+			}
+			.folded #hideMap{
+				display:block !important;
+			}
+			.cursor-pointer{
+				cursor:pointer;
+			}
+			.i2cList-marker{
+				position:absolute;
+				aspect-ratio:1;
+				border-radius:100%;
+				background:radial-gradient(rgb(0,255,0,1) 30%,rgb(0,0,0,0) 60%);
+			}
+			.i2cList-field{
+				background-color:green;
+				position:absolute;
+			}
+			.ckeckpointsList-marker{
+				position:absolute;
+				border-width:2px;
+				border-style:solid;
+				border-radius:10px;
+				border-color:blue;
+			}
+			.ckeckpointsList-field{
+				position:absolute;
+			}
+			
+		</style>
+	</head>
+	<body>
+		<header>	
+			<div><span id="logo">Logo</span><a href="1" id="homepage">Homepage</a></div>
+			<a href="2">Preliminary</a>
+			<a href="3">FRU firmware</a>
+			<a href="4">Repair notes</a>
+		</header>
+		<main>
+			<div id="sidePanel">
+				<div id="i2cList" style="flex:1 1"></div>
+				<div id="checkpointsList" style="flex:1 1"></div>
+				<button class="ui-button ui-corner-all ui-widget" style="flex:none;" type="button">press me</button>
+			</div>
+			<div style="width:0;">
+				<div id="flipMap" style="position:absolute;width:100px;bottom:20px;opacity:0.5;aspect-ratio:1;
+					z-index:1;background-size:contain;background-repeat:no-repeat;background-image:url('static/pictograms/flip.svg')"></div>
+			</div>
+			<div id="board">
+				<div id="infoLayer">
+					<img id="image">
+					<!-- src="static/images/board_bottom.JPG"> -->
+				</div>
+			</div>
+			<div id="map" class="folded" style="position:absolute;width:300px;right:20px;bottom:20px;">
+				<canvas id="canvas" style="position:absolute;width:100%;height:100%;top:0;left:0;"></canvas>
+				<img style="display:block;width:100%">
+				<div id="hideMap" style="display:none;position:relative;background-size:contain;
+					background-repeat:no-repeat;width:100%;opacity:0.5;aspect-ratio:1;background-image:url('static/pictograms/hide.svg')"></div>
+				<div class="map-top-border"></div>
+				<div class="map-left-border"></div>
+				<div class="map-top-left-corner"></div>
+			</div>
+		</main>
+	</body>
+	
+	
+	<script>
+		"use strict";
+		let data={
+			V1:{text:"your 1 text",x:"10%",y:"10%",side:false},
+			V2:{text:"your 2 text",x:"20%",y:"20%",side:false},
+			V3:{text:"your 3 text",x:"30%",y:"30%",side:true},
+			V4:{text:"your 4 text",x:"40%",y:"40%",side:true},
+			V5:{text:"your 5 text",x:"99%",y:"99%",side:false},
+			V6:{text:"your 6 text",x:"97%",y:"97%",side:false},
+		};
+		
+		let checkData={
+			R1:{text:"5О Ohm",left:"10%",top:"15%",right:"80%",bottom:"75%",side:false},
+			C1:{text:"2О uF",left:"15%",top:"20%",right:"75%",bottom:"70%",side:true},
+			R2:{text:"55 kOhm",left:"20%",top:"25%",right:"70%",bottom:"65%",side:true},
+			C2:{text:"5О uF",left:"25%",top:"30%",right:"65%",bottom:"60%",side:false},
+		};
+		<!-- for(const [key,value] of Object.entries(data)){ -->
+			<!-- let elem=document.createElement("li"); -->
+			<!-- elem.innerHTML=key; -->
+			<!-- document.querySelector("#list>ul").append(elem); -->
+		<!-- }; -->
+		
+		//infoPanel=document.createElement("div");	  
+		//infoPanel.classList.add("classList");
+		
+		
+		<!-- (function($){ -->
+			<!-- $("#logo").on("click",function(){ -->
+				<!-- $("#list").toggleClass("hidden"); -->
+			<!-- }); -->
+			<!-- $("#board").scroll(function(){ -->
+				<!-- console.log("adsadsa"); -->
+				<!-- $("#image").width($("#image").width()/1.1); -->
+				<!-- return false; -->
+			<!-- }) -->
+		<!-- })(jQuery); -->
+		let map=document.getElementById("map");
+		let canvas=document.getElementById("canvas");
+		let ctx=canvas.getContext("2d");
+		ctx.fillStyle="rgba(0,0,0,0.7)";
+		ctx.strokeStyle="rgb(255,0,0)";
+		
+				
+
+		let mapLeftBorder=document.querySelector("#map .map-left-border"),
+			mapTopBoreder=document.querySelector("#map .map-top-border"),
+			mapTopLeftCorner=document.querySelector("#map .map-top-left-corner"),
+			flipMap=document.getElementById("flipMap"),
+			mapImage=document.querySelector("#map img"),
+			board=document.getElementById("board"),
+			sideFlag=true,
+			image=document.getElementById("image"),
+			logo=document.getElementById("logo"),
+			i2cList=document.getElementById("i2cList"),
+			sidePanel=document.getElementById("sidePanel"),
+			checkpointsList=document.getElementById("checkpointsList");
+			
+		let sideA_image=new Image(),
+			sideB_image=new Image();
+	
+	
+	
+	
+	
+	
+	
+	
+	
+		const WHEEL_FACTOR=1000,
+			  MARKER_WIDTH=2,
+			  MARKER_TO_BOARD_WIDTH_RATIO=5,
+			  MAP_MIN_WIDTH=100,
+			  MAP_MAX_WIDTH=400,
+			  //image=document.getElementById("image"),
+			  //board=document.getElementById("board"),
+			  infoLayer=document.getElementById("infoLayer");
+		
+		function scaleAndScroll(scaleFactor,x,y,multiply=null){
+			let scrollLeft=board.scrollLeft,
+				scrollTop=board.scrollTop,
+				resultWidth=scaleFactor*(multiply? infoLayer.clientWidth:board.clientWidth);
+			
+			if(resultWidth<=board.clientWidth){
+					infoLayer.classList.add("fitted");
+					refreshMap();
+					return;
+			}else{
+				infoLayer.classList.remove("fitted");
+			};
+			
+			infoLayer.style.width=resultWidth+"px";
+				
+			if(typeof(x)==="number"&&typeof(y)==="number"){
+				let offsetLeft=x-board.offsetLeft,
+					offsetTop=y-board.offsetTop;
+				
+				board.scroll((scrollLeft+offsetLeft)*scaleFactor-offsetLeft,
+							 (scrollTop+offsetTop)*scaleFactor-offsetTop);
+			}else if(typeof(x)==="string"&&typeof(y)==="string"){
+				board.scroll(parseFloat(x)*infoLayer.clientWidth/100-board.clientWidth/2,
+							 parseFloat(y)*infoLayer.clientHeight/100-board.clientHeight/2);
+			};
+			
+			refreshMap();
+			//board.dispatchEvent(new CustomEvent("scroll"));
+		};
+		
+		logo.addEventListener("click",function(){
+			document.getElementById("sidePanel").classList.toggle("hidden");
+			if(board.clientWidth>infoLayer.clientWidth) infoLayer.classList.add("fitted");
+			refreshMap();
+		});
+		
+		infoLayer.addEventListener("wheel",function(event){
+			event.preventDefault();
+			let dXsign=Math.sign(event.deltaX),
+				dYsign=Math.sign(event.deltaY),
+				factor=1;
+			if(dXsign&&dYsign) return;
+			if(dXsign) factor*=event.deltaX;
+			if(dYsign) factor*=event.deltaY;
+			factor/=(-WHEEL_FACTOR);
+			factor+=1;
+			
+			scaleAndScroll(factor,event.clientX,event.clientY,true);
+		});
+		
+		image.addEventListener("pointerdown",function down(pressEvent){
+			event.preventDefault();
+			let that=this;
+			this.classList.add("grabbing");
+			let fromX=pressEvent.clientX,
+				fromY=pressEvent.clientY;
+			function move(moveEvent){
+				board.scrollBy(fromX-moveEvent.clientX,
+							   fromY-moveEvent.clientY);
+				fromX=moveEvent.clientX;
+				fromY=moveEvent.clientY;
+			};
+			function up(){
+				that.classList.remove("grabbing");
+				this.removeEventListener("pointermove",move);
+				this.removeEventListener("pointerup",up);
+			};
+			document.addEventListener("pointermove",move);
+			document.addEventListener("pointerup",up);
+		});
+		
+		function refreshMap(){
+			ctx.clearRect(0,0,canvas.width,canvas.height);
+			ctx.fillRect(0,0,canvas.width,canvas.height);
+			
+			let left=canvas.width*board.scrollLeft/infoLayer.clientWidth;
+			let top=canvas.height*board.scrollTop/infoLayer.clientHeight;
+			let width=canvas.width*board.clientWidth/infoLayer.clientWidth;
+			let height=canvas.height*board.clientHeight/infoLayer.clientHeight;
+			ctx.clearRect(left,top,width,height);
+			ctx.strokeRect(left,top,width,height);
+			
+			document.querySelectorAll(".i2cList-field").forEach((elem)=>elem.fit());
+		};
+		
+		board.addEventListener("scroll",refreshMap);
+		
+		window.addEventListener("resize",refreshMap);
+		
+		[{elem:mapLeftBorder,top:false},
+		 {elem:mapTopBoreder,top:true},
+		 {elem:mapTopLeftCorner,top:false}].forEach(function(item){
+			item.elem.addEventListener("mousedown",function(event){
+				event.stopPropagation();
+				
+				let moveEventHandler=moveBorderGen(item.top);
+				
+				document.addEventListener("mousemove",moveEventHandler);
+				document.addEventListener("mouseup",function mouseUp(event){
+					document.removeEventListener("mousemove",moveEventHandler);
+					document.removeEventListener("mouseup",mouseUp);
+				});
+			});
+		});
+
+		function moveBorderGen(top){
+			return function moveBorder(event){
+				event.preventDefault();
+				
+				let width;
+				
+				if(top){
+					width=(map.offsetTop+map.offsetHeight-event.clientY)*map.offsetWidth/map.offsetHeight;
+				}else{
+					width=map.offsetLeft+map.offsetWidth-event.clientX;
+				};
+				if(width<MAP_MIN_WIDTH||width>MAP_MAX_WIDTH) return;
+				map.style.width=width+"px";
+			};
+		};
+		
+		map.addEventListener("mousedown",function(event){
+			if(event.button!==0) return;
+			map.addEventListener("mouseup",function mouseUp(){
+				map.classList.toggle("folded");		
+				map.removeEventListener("mouseup",mouseUp);
+			});
+		});
+		
+		function flipSide(){
+			let source=(sideFlag? sideA_image.src:sideB_image.src);
+			
+			mapImage.src=source;
+			image.src=source;
+			
+			document.querySelectorAll(".i2cList-marker,.i2cList-field,.ckeckpointsList-marker,.ckeckpointsList-field").forEach((elem)=>{
+				if(elem.classList.contains(sideFlag? "sideA":"sideB")) elem.hidden=true;
+				else elem.hidden=false;
+			});
+			
+			refreshMap();
+			
+			sideFlag=!sideFlag;
+		};
+		
+		async function loaded(){
+			let loadPromiseA=new Promise(function(resolve,reject){
+				sideA_image.onload=function(){
+					resolve();
+				};
+			});
+			
+			let loadPromiseB=new Promise(function(resolve,reject){
+				sideB_image.onload=function(){
+					resolve();
+				};
+			});
+			
+			sideA_image.src="static/images/Untitled.png";
+			sideB_image.src="static/images/board_bottom.JPG";
+			
+			await loadPromiseA;
+			await loadPromiseB;
+		};
+		
+		flipMap.addEventListener("click",flipSide);
+		
+		EventTarget.prototype.addEventListenerWrapper=function(event,eventHandler){
+			this.addEventListener("mouseleave",function(){
+				this.removeEventListener(event,eventHandler);
+			});
+			this.addEventListener(event,eventHandler);
+		};
+		
+		
+		Element.prototype.onhover=function(pointerOnCallback,pointerOffCallback){
+			this.onmouseenter=function(){
+				pointerOnCallback();
+				this.addEventListener("mouseleave",function mouseleave(){
+					pointerOffCallback();
+					this.removeEventListener("mouseleave",mouseleave);
+				});
+			};
+		};
+		
+		Element.prototype.fit=function(){
+			let parent=this.parentElement;
+			if((this.getAttribute("data-left")*parent.offsetWidth/100+this.offsetWidth)>parent.offsetWidth){
+				this.style.left="";
+				this.style.right=0;
+			}else{
+				this.style.right="";
+				this.style.left=this.getAttribute("data-left")+"%";
+			};
+			if((this.getAttribute("data-top")*parent.offsetHeight/100+this.offsetHeight)>parent.offsetHeight){
+				this.style.top="";
+				this.style.bottom=0;
+			}else{
+				this.style.bottom="";
+				this.style.top=this.getAttribute("data-top")+"%";
+			};
+		};
+		
+		async function placeMarkers(){
+			let sideA_heightOffset=sideA_image.width*MARKER_WIDTH/(2*sideA_image.height),
+				sideB_heightOffset=sideB_image.width*MARKER_WIDTH/(2*sideB_image.height);
+		
+			for(const [key,value] of Object.entries(data)){
+				let heightOffset=(value.side? sideA_heightOffset:sideB_heightOffset);
+				
+				let boardInfoRender=new BoardInfoRender(key,value);
+				
+				i2cList.append(boardInfoRender.listItem);
+				infoLayer.append(boardInfoRender.marker,boardInfoRender.field);
+				
+				boardInfoRender.render(function(){this.marker.style.width=MARKER_WIDTH+"%";
+												  this.marker.style.top="calc("+value.y+" - "+heightOffset+"%)";
+												  this.marker.style.left="calc("+value.x+" - "+MARKER_WIDTH/2+"%)";}.bind(boardInfoRender),"i2cList-marker",
+									   function(){this.field.style.top="calc("+value.y+" + "+heightOffset+"%)";
+												  this.field.style.left="calc("+value.x+" + "+MARKER_WIDTH/2+"%)";
+												  this.field.setAttribute("data-top",parseFloat(value.y)+heightOffset);
+												  this.field.setAttribute("data-left",parseFloat(value.x)+MARKER_WIDTH/2);}.bind(boardInfoRender),"i2cList-field");
+			};
+			
+			for(const [key,value] of Object.entries(checkData)){
+				let heightOffset=(value.side? sideA_heightOffset:sideB_heightOffset);
+			
+				let boardInfoRender=new BoardInfoRender(key,value);
+				
+				checkpointsList.append(boardInfoRender.listItem);
+				infoLayer.append(boardInfoRender.marker,boardInfoRender.field);			
+
+				boardInfoRender.render(function(){this.marker.style.left=value.left;
+												  this.marker.style.right=value.right;
+												  this.marker.style.top=value.top;
+												  this.marker.style.bottom=value.bottom;}.bind(boardInfoRender),"ckeckpointsList-marker",
+									   function(){this.field.style.top="calc(100% - "+value.bottom+" + "+heightOffset+"%)";
+												  this.field.style.left="calc(100% - "+value.right+" + "+MARKER_WIDTH/2+"%)";
+												  this.field.setAttribute("data-top",100-parseFloat(value.bottom)+heightOffset);
+												  this.field.setAttribute("data-left",100-parseFloat(value.right)+MARKER_WIDTH/2);}.bind(boardInfoRender),"ckeckpointsList-field");
+			};
+		};
+		
+		class BoardInfoRender{
+			constructor(key,value){
+				this.listItem=document.createElement("div");
+				this.marker=document.createElement("div");
+				this.field=document.createElement("div");
+				
+				this.key=key;
+				this.value=value;
+				this.width=(value.left&&value.right)? 100-parseFloat(value.right)-parseFloat(value.left):MARKER_WIDTH;
+				this.height=(value.top&&value.bottom)? 100-parseFloat(value.bottom)-parseFloat(value.top):MARKER_WIDTH;
+				this.x=value.x??parseFloat(value.left)+this.width/2+"%";
+				this.y=value.y??parseFloat(value.top)+this.height/2+"%";
+			};
+			
+			render(setMarkerSize,markerClass,setFieldSize,fieldClass){
+				this.setListItem();
+				this.setMarker(markerClass,setMarkerSize);
+				this.setField(fieldClass,setFieldSize);
+				this.listItemHoverHandler();
+				this.listItemClickHandler();
+				this.markerHoverHandler();
+			};
+		
+			setListItem(){
+				this.listItem.innerHTML=this.key;
+				this.listItem.classList.add("cursor-pointer");
+			};
+			
+			setMarker(className,setSize){
+				this.marker.classList.add(className);
+				this.marker.classList.add(this.value.side? "sideA":"sideB");
+				setSize();
+			};
+			
+			setField(className,setSize){
+				this.field.classList.add(className);
+				this.field.classList.add(this.value.side? "sideA":"sideB");
+				this.field.textContent=this.value.text;
+				this.field.style.visibility="hidden";
+				setSize();
+			};
+			
+			listItemHoverHandler(){
+				this.listItem.onhover(()=>{this.field.style.visibility="visible"},()=>{this.field.style.visibility="hidden"});	
+			};
+			
+			listItemClickHandler(){
+				this.listItem.onclick=(()=>{if(this.value.side^sideFlag) flipSide();
+											scaleAndScroll(100/(MARKER_TO_BOARD_WIDTH_RATIO*this.width),this.x,this.y)});
+			};
+			
+			markerHoverHandler(){
+				this.marker.onhover(()=>{
+					this.field.style.visibility="visible";
+					this.field.addEventListener("mouseenter",function mouseenter(){
+						this.style.visibility="visible";
+						this.addEventListener("mouseleave",function mouseleave(){ 
+							this.removeEventListener("mouseenter",mouseenter);
+							this.removeEventListener("mouseleave",mouseleave);
+							this.style.visibility="hidden";
+						});	
+					});
+				},()=>{this.field.style.visibility="hidden"});
+			};
+		};
+		
+		async function initial(){
+			await loaded();
+			placeMarkers();
+			flipSide();
+		};
+		
+		initial();
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		<!-- let observer=new MutationObserver(function(mutationList){ -->
+			<!-- for(const mutation of mutationList){ -->
+				<!-- if(mutation.attributeName==="src") refreshMap(); -->
+			<!-- }; -->
+		<!-- }); -->
+		
+		<!-- observer.observe(mapImage,{attributes:true}); -->
+		
+			
+		(function($){
+			//$("#sidePanel").append("<button>press me</button>").button();
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			<!-- $.widget("my.infoPanel",{ -->
+				<!-- _create:function(){ -->
+					<!-- let marker=$("<div></div>").css({"position":"absolute", -->
+													<!-- //"background-color":"green", -->
+													<!-- "width":"5%", -->
+													<!-- "aspect-ratio":"1/1", -->
+													<!-- "top":"calc(this.options.top - 5%)",//calc(this.options.top - 5%) -->
+													<!-- "left":"0",//calc(this.options.left - 5%) -->
+													<!-- "border-radius":"100%", -->
+													<!-- "background":"radial-gradient(rgb(0,255,0,1),rgb(0,0,0,0))"}); -->
+					<!-- let field=$("<div></div>").css({"background-color":"green", -->
+												    <!-- "position":"absolute", -->
+												    <!-- "top":"calc(this.options.top + 5%)", -->
+												    <!-- "left":"calc(this.options.top + 5%)", -->
+												    <!-- //"width":"20px","height":"20px" -->
+												    <!-- }).addClass("my-hidden"); -->
+					
+					<!-- marker.hover(function(){ -->
+						<!-- field.toggleClass("my-hidden"); -->
+					<!-- }) -->
+					<!-- field.html(this.options.text); -->
+					<!-- this.element.append(marker); -->
+					<!-- this.element.append(field); -->
+				<!-- } -->
+			<!-- }); -->
+			
+			
+			
+			
+			//$(document).on("mousemove",function(event){console.log($(event.target).css("cursor"))})
+			
+			
+			
+			$.fn.fit=function(){
+				let parent=this.parent(),
+					thisOffset=this.offset(),
+					parentOffset=parent.offset();
+					
+				if((thisOffset.left+this.width())>(parentOffset.left+parent.width())){
+					this.css({"left":"",
+							   "right":0});
+				};
+				if((thisOffset.top+this.height())>(parentOffset.top+parent.height())){
+					this.css({"top":"",
+							   "bottom":0});
+				};
+				return this;
+			};
+			
+			
+			
+			
+			
+			
+
+			//$("#map img").attr("src",image.src);
+
+			let dialog=$("<div>").dialog({
+											dialogClass:"no-close",modal:true,title:"Waiting...",buttons:[{
+																											text:"Cancel",click:function(){
+																																		$(this).dialog("close");}}]}),
+				progressbar=$("<div>").progressbar({value:false});
+			dialog.append(progressbar);
+			
+			
+		})(jQuery);
+	</script>
+</html>

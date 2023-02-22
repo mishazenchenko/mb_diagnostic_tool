@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+	<head>
+		<script type="application/javascript" src="jquery-ui-1.13.2/external/jquery/jquery.js"></script>
+		<script type="application/javascript" src="jquery-ui-1.13.2/jquery-ui.js"></script>
+		<link href="jquery-ui-1.13.2/jquery-ui.css" rel="stylesheet">
+		<title>Firmware</title>
+		<style>
+			body{
+				min-width:400px;
+				margin:0;
+			}
+			header{
+				height:100px;
+				display:flex;
+				flex-wrap:wrap;
+				text-align:center;
+				align-items:center;
+				background-color:gray;
+			}
+			header>div{
+				display:flex;
+				width:200px;
+			}
+			header>a{
+				width:calc((100% - 200px)/3);
+			}
+			#logo{
+				cursor:pointer;
+				flex:auto;
+			}
+			#homepage{
+				flex:auto;
+			}
+			main{
+				height:calc(100vh - 100px);
+				display:flex;
+				flex-direction:row;
+			}
+			#sidePanel{
+				display:flex;
+				flex-direction:column;
+				width:200px;
+				position:relative;
+				background-color:gray;
+				flex:none;
+			}
+			#firmware{
+				vertical-align:middle;
+				width:400px;
+				height:200px;
+				padding:20px;
+				display:grid;
+				grid-template-columns:1fr 4fr;
+				row-gap:20px;
+				//grid-template-rows:
+			}
+			label{
+				display:flex;
+				align-items:center;
+			}
+			input{
+				border-radius:3px;
+				//border:20px solid;
+			}
+		</style>
+	</head>
+	<body>
+		<header>	
+			<div><span id="logo">Logo</span><a href="1" id="homepage">Homepage</a></div>
+			<a href="2">Preliminary</a>
+			<a href="3">FRU firmware</a>
+			<a href="4">Repair notes</a>
+		</header>
+		<main>
+			<div id="sidePanel"></div>
+			<form id="firmware">
+				<label for="serial">Serial number</label>
+				<input type="text" autocomplete="off" name="serial" id="serial" required pattern="\d{8}">
+				<label for="inventory">Inventory number</label>
+				<input type="text" autocomplete="off" name="inventory" id="inventory" required pattern="\d{9}">
+				<label for="mac-address">MAC address</label>
+				<input type="text" autocomplete="off" name="mac-address" id="mac-address" required pattern="[0-9a-fA-F]{12}">
+				<button style="grid-column:1/3; height:100px">Flash</button>
+			</form>
+		</main>
+	</body>
+	<script>
+		let inputs=document.querySelectorAll("input");
+		let dict={"serial":"there must be eight digits!!!",
+				  "inventory":"there must be nine digits!!!",
+				  "mac-address":"there must be twelve hex-symbols!!!"};
+		let valueMissingMessage="empty field!!!";
+		if(inputs.length) inputs[0].focus();
+		inputs.forEach(function(elem){
+			elem.addEventListener("keydown",function(event){
+				if(event.key==="Enter"){
+					event.preventDefault();
+					let nextElement=this.nextElementSibling;
+					while(nextElement?.nodeName!=="INPUT"&&nextElement?.nodeName!=="BUTTON"){
+						nextElement=nextElement.nextElementSibling;
+						if(!nextElement) return;
+					};
+					if(nextElement.nodeName==="INPUT") nextElement.focus();
+					if(nextElement.nodeName==="BUTTON") nextElement.click();
+				};
+			});
+			
+			elem.setCustomValidity(valueMissingMessage);
+			
+			elem.addEventListener("input",function(){
+				if(this.validity.patternMismatch) this.setCustomValidity(dict[this.id]);
+				else if(this.validity.valueMissing) this.setCustomValidity(valueMissingMessage);
+				else this.setCustomValidity("");
+				this.style.background=this.checkValidity()? "rgb(0,255,0,0.2)":"rgb(255,0,0,0.2)";
+		
+
+				<!-- console.log("before") -->
+				<!-- let response=await fetch("http://localhost:8080/fetchResponse"); -->
+				<!-- console.log(await response.json()); -->
+			});
+		});
+		
+		<!-- let button=document.querySelector("button"); -->
+		<!-- if(button){ -->
+			<!-- button.addEventListener("focus",function(){ -->
+				<!-- this.click(); -->
+			<!-- }); -->
+		<!-- }; -->
+	</script>
+</html>
