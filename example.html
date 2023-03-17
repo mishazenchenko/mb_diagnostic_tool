@@ -1,0 +1,17 @@
+<html>
+<body>
+	<div id="div"></div>
+</body>
+<script>
+async function wrap(a){a()}
+async function a(){
+	await Promise.all([aaa(2000),aaa(3000)]);
+}
+
+async function aaa(time){
+	await new Promise(resolve=>{setTimeout(()=>{console.log(time);document.getElementById("div").textContent=time;resolve()},time);});
+}
+		
+wrap(a);
+</script>
+</html>

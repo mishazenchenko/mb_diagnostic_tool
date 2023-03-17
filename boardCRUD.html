@@ -1,0 +1,245 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Edit</title>
+		<style>
+			.preview{
+				width:100%;
+			}
+			
+			.waiting{
+				cursor:wait !important;
+			}
+			.button{
+				//cursor:pointer;
+				border-style:solid;
+				background-color:grey;
+				height:100px;
+				opacity:0.5;
+				//padding:0 20px;
+			}
+		</style>
+			
+	</head>
+	<body  style="display:grid;grid-template-columns:1fr repeat(2, 1fr 0 3fr) 1fr">
+			<div style="position:relative;">
+				<input required type="text" name="boardsListName" id="input" style="visibility:hidden;position:absolute;width:80%">
+				<div id="addNew" style="cursor:pointer">addNew</div>
+				<div style="display:flex;">
+					<div id="boardsList" style="height:95vh;overflow-y:auto;flex:auto;cursor:pointer;">$insertion</div>
+					<div id="delButtonsPanel" style="flex:none;"></div>
+				</div>
+			</div>
+			<label class="button" id="sideAlabel" for="sideA">Front side</label>
+			<input required name="sideA" id="sideA" accept=".png, .jpg, .jpeg" type="file" style="visibility:hidden" disabled>
+			<img id="sideA_preview" class="preview">
+			<label class="button" id="sideBlabel" for="sideB">Rear side</label>
+			<input required name="sideB" id="sideB" accept=".png, .jpg, .jpeg" type="file" style="visibility:hidden" disabled>
+			<img id="sideB_preview" class="preview">
+			<div>
+				<button type="button" disabled="true" id="submit">Submit</button>
+				<button type="reset" id="cancel"  style="visibility:hidden;">Cancel</button>
+			</div>
+	</body>
+	<script>
+
+		
+		"use strict"
+		document.addEventListener("DOMContentLoaded",body);
+		
+		let board;
+		function body(){
+		
+		let boardsListChildren=boardsList.children;
+		boardsListChildren.forEach=Array.prototype.forEach;
+		boardsListChildren.forEach(function(elem){
+			let delButton=document.createElement("div");
+			delButton.style.cursor="pointer";
+			delButton.textContent="del";
+			delButton.onclick=async function(){delButton.remove();elem.remove();cancel.click();await del(elem.textContent);}
+			delButtonsPanel.append(delButton);
+			elem.onclick=function(){board=elem.textContent;loadPic(elem.textContent)};
+		});
+		
+		
+		async function del(boardName){
+			document.body.classList.add("waiting");
+			await fetch("/admin/"+boardName+"/delete");
+			document.body.classList.remove("waiting");
+		}
+		
+		sideA_preview.addEventListener("click",async function(){
+			document.cookie="board="+board;
+			document.cookie="side=sideA";
+			let form=document.createElement("form");
+			form.method="GET";
+			form.action="/admin/set/";
+			document.body.append(form);
+			
+			//let blob=await imgToBlob(this);
+			//let blob64=URL.createObjectURL(blob);
+			
+			//localStorage.setItem("image",this.src);
+			
+			form.submit();
+		});
+		
+		
+		sideB_preview.addEventListener("click",async function(){
+			document.cookie="board="+board;
+			document.cookie="side=sideB";
+			let form=document.createElement("form");
+			form.method="GET";
+			form.action="/admin/set/";
+			document.body.append(form);
+			
+			//let blob=await imgToBlob(this);
+			//let blob64=URL.createObjectURL(blob);
+			
+			//localStorage.setItem("image",this.src);
+			
+			form.submit();
+		});
+		
+		
+		[sideA,sideB].forEach(function(elem){
+			elem.addEventListener("change",function(){
+				document.getElementById(elem.id+"_preview").src=(elem.files[0])? window.URL.createObjectURL(elem.files[0]) : "";
+				console.log(document.getElementById(elem.id+"_preview").src)
+
+			});
+		});
+		
+		addNew.addEventListener("click",function(){
+			boardsList.style.visibility="hidden";
+			delButtonsPanel.style.visibility="hidden";
+			input.style.visibility="visible";
+			cancel.style.visibility="visible";
+			sideAlabel.style.opacity="1";
+			sideBlabel.style.opacity="1";
+			sideAlabel.style.cursor="pointer";
+			sideBlabel.style.cursor="pointer";
+			sideA.disabled=false;
+			sideB.disabled=false;
+			sideA_preview.src="";
+			sideB_preview.src="";
+			input.focus();
+		});
+		
+		cancel.addEventListener("click",function(){
+			sideA.disabled=true;
+			sideB.disabled=true;
+			sideA_preview.src="";
+			sideB_preview.src="";
+			boardsList.style.visibility="visible";
+			delButtonsPanel.style.visibility="visible";
+			input.style.visibility="hidden";
+			cancel.style.visibility="hidden";
+			sideAlabel.style.opacity="0.5";
+			sideBlabel.style.opacity="0.5";
+			sideAlabel.style.cursor="default";
+			sideBlabel.style.cursor="default";
+			submit.disabled=true;
+		});
+		
+		boardsList.addEventListener("click",function(event){
+			console.log(event.target);
+		});
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		input.addEventListener("input",valid);
+		sideA.addEventListener("input",valid);
+		sideB.addEventListener("input",valid);
+		
+		function valid(event){
+			console.log(input.validity.valueMissing,sideA.validity.valueMissing,sideB.validity.valueMissing);
+			submit.disabled=(input.validity.valueMissing||sideA.validity.valueMissing||sideB.validity.valueMissing)? true:false;
+		};
+		
+		async function imgToBlob(img){
+			let canvas=document.createElement("canvas");
+			canvas.width=img.naturalWidth;
+			canvas.height=img.naturalHeight;
+			
+			console.log(img.width,img.height,img.src);
+			
+			let context=canvas.getContext("2d");
+			
+			context.drawImage(img,0,0);
+			
+			let resultBlob=await new Promise(resolve=>{canvas.toBlob(resolve)});
+			console.log("blob",resultBlob);
+			return resultBlob;
+		}
+		
+		document.getElementById("submit").onclick=async function(){
+			document.body.classList.add("waiting");
+			let elem=document.createElement("div");
+			elem.style="position:absolute;width:100%;height:100%;top:0;left:0;background-color:black;opacity:0.4";
+			document.body.append(elem);
+			let newboardsList=document.createElement("div"),
+				delButton=document.createElement("div");
+			newboardsList.textContent=input.value;
+			newboardsList.style.cursor="pointer";
+			newboardsList.onclick=function(){board=this.textContent;loadPic(this.textContent)};
+			delButton.style.cursor="pointer";
+			delButton.textContent="del";
+			delButton.onclick=function(){delButton.remove();newboardsList.remove();cancel.click();}
+			boardsList.append(newboardsList);
+			delButtonsPanel.append(delButton);
+			let boardName=input.value;
+			await Promise.all([new Promise(async function(resolve){
+											let blob1=await imgToBlob(sideA_preview);
+											await fetch("/admin/images/"+boardName+"/sideA",{method:"POST",body:blob1})
+											resolve();
+											}),
+								new Promise(async function(resolve){
+											let blob2=await imgToBlob(sideB_preview);
+											await fetch("/admin/images/"+boardName+"/sideB",{method:"POST",body:blob2})
+											resolve();
+											})]);
+			
+			cancel.click();
+			elem.remove();
+			document.body.classList.remove("waiting");
+			//imgToBlob(document.getElementById("sideA_preview"))
+			//console.log(document.getElementById("sideA_preview").src)
+		}
+		
+		async function loadPic(boardName){
+			let response=null,
+				response1_blob=null,
+				response2_blob=null;
+			let promises=[new Promise(async function(resolve){let response=await fetch("/admin/images/"+boardName+"/sideA");
+															  response1_blob=await response.blob();
+															  resolve();}),
+						  new Promise(async function(resolve){let response=await fetch("/admin/images/"+boardName+"/sideB");
+															  response2_blob=await response.blob();
+															  resolve();})];
+			await Promise.all(promises);
+			
+			sideA_preview.src=URL.createObjectURL(response1_blob);
+			sideB_preview.src=URL.createObjectURL(response2_blob);
+			
+			
+			<!-- let reader=new FileReader(); -->
+			<!-- reader.readAsDataURL(response1_blob); -->
+			<!-- await new Promise((resolve)=>{reader.onload=(resolve)=>{ -->
+				<!-- localStorage.setItem("side1",reader.result); -->
+				<!-- resolve();}}); -->
+			
+			<!-- localStorage.setItem("side1",response1_blob); -->
+		}
+		
+		}
+		
+	</script>
+</html>
