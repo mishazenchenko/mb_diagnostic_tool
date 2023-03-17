@@ -96,28 +96,36 @@
 			elem.addEventListener("keydown",function(event){
 				if(event.key==="Enter"){
 					event.preventDefault();
-					let nextElement=this.nextElementSibling;
-					while(nextElement?.nodeName!=="INPUT"&&nextElement?.nodeName!=="BUTTON"){
-						nextElement=nextElement.nextElementSibling;
-						if(!nextElement) return;
-					};
-					if(nextElement.nodeName==="INPUT") nextElement.focus();
-					if(nextElement.nodeName==="BUTTON") nextElement.click();
+					
+						function getNextElement(element){
+							if(!(nextElement=element.nextElementSibling)) return;
+							if(nextElement.nodeName==="INPUT") {nextElement.focus();return;};
+							if(nextElement.nodeName==="BUTTON") {nextElement.click();return;};
+							getNextElement(nextElement);
+						};
+						getNextElement(this);
+					
+					<!-- while(nextElement?.nodeName!=="INPUT"&&nextElement?.nodeName!=="BUTTON"){ -->
+						<!-- nextElement=nextElement.nextElementSibling; -->
+						<!-- if(!nextElement) return; -->
+					<!-- }; -->
+					<!-- if(nextElement.nodeName==="INPUT") nextElement.focus(); -->
+					<!-- if(nextElement.nodeName==="BUTTON") nextElement.click(); -->
 				};
 			});
 			
 			elem.setCustomValidity(valueMissingMessage);
 			
-			elem.addEventListener("input",function(){
+			elem.addEventListener("input",async function(){
 				if(this.validity.patternMismatch) this.setCustomValidity(dict[this.id]);
 				else if(this.validity.valueMissing) this.setCustomValidity(valueMissingMessage);
 				else this.setCustomValidity("");
 				this.style.background=this.checkValidity()? "rgb(0,255,0,0.2)":"rgb(255,0,0,0.2)";
 		
 
-				<!-- console.log("before") -->
-				<!-- let response=await fetch("http://localhost:8080/fetchResponse"); -->
-				<!-- console.log(await response.json()); -->
+				console.log("before")
+				let response=await fetch("http://localhost:8080/fetchResponse");
+				console.log(await response.json());
 			});
 		});
 		

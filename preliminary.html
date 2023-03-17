@@ -133,9 +133,9 @@
 				position:absolute;
 				aspect-ratio:1;
 				border-radius:100%;
-				background:radial-gradient(rgb(0,255,0,1) 30%,rgb(0,0,0,0) 60%);
 			}
 			.i2cList-field{
+				white-space:pre;
 				background-color:green;
 				position:absolute;
 			}
@@ -147,7 +147,11 @@
 				border-color:blue;
 			}
 			.ckeckpointsList-field{
+				white-space:pre;
 				position:absolute;
+			}
+			.inactive{
+				opacity:0.5;
 			}
 			
 		</style>
@@ -163,7 +167,7 @@
 			<div id="sidePanel">
 				<div id="i2cList" style="flex:1 1"></div>
 				<div id="checkpointsList" style="flex:1 1"></div>
-				<button class="ui-button ui-corner-all ui-widget" style="flex:none;" type="button">press me</button>
+				<button class="ui-button ui-corner-all ui-widget" id="connect" style="flex:none;" type="button">press me</button>
 			</div>
 			<div style="width:0;">
 				<div id="flipMap" style="position:absolute;width:100px;bottom:20px;opacity:0.5;aspect-ratio:1;
@@ -191,19 +195,16 @@
 	<script>
 		"use strict";
 		let data={
-			V1:{text:"your 1 text",x:"10%",y:"10%",side:false},
-			V2:{text:"your 2 text",x:"20%",y:"20%",side:false},
-			V3:{text:"your 3 text",x:"30%",y:"30%",side:true},
-			V4:{text:"your 4 text",x:"40%",y:"40%",side:true},
-			V5:{text:"your 5 text",x:"99%",y:"99%",side:false},
-			V6:{text:"your 6 text",x:"97%",y:"97%",side:false},
-		};
-		
-		let checkData={
-			R1:{text:"5О Ohm",left:"10%",top:"15%",right:"80%",bottom:"75%",side:false},
-			C1:{text:"2О uF",left:"15%",top:"20%",right:"75%",bottom:"70%",side:true},
-			R2:{text:"55 kOhm",left:"20%",top:"25%",right:"70%",bottom:"65%",side:true},
-			C2:{text:"5О uF",left:"25%",top:"30%",right:"65%",bottom:"60%",side:false},
+			V1:{type:"i2c",x:"10%",y:"10%",side:false},
+			V2:{type:"i2c",x:"20%",y:"20%",side:false},
+			V3:{type:"i2c",x:"30%",y:"30%",side:true},
+			V4:{type:"i2c",x:"40%",y:"40%",side:true},
+			V5:{type:"i2c",x:"99%",y:"99%",side:false},
+			V6:{type:"i2c",x:"97%",y:"97%",side:false},
+			R1:{type:"checkpoint",text:"50 Ohm",left:"10%",top:"15%",right:"80%",bottom:"75%",side:false},
+			C1:{type:"checkpoint",text:"20 uF",left:"15%",top:"20%",right:"75%",bottom:"70%",side:true},
+			R2:{type:"checkpoint",text:"55 kOhm",left:"20%",top:"25%",right:"70%",bottom:"65%",side:true},
+			C2:{type:"checkpoint",text:"50 uF",left:"25%",top:"30%",right:"65%",bottom:"60%",side:false},
 		};
 		<!-- for(const [key,value] of Object.entries(data)){ -->
 			<!-- let elem=document.createElement("li"); -->
@@ -244,7 +245,8 @@
 			logo=document.getElementById("logo"),
 			i2cList=document.getElementById("i2cList"),
 			sidePanel=document.getElementById("sidePanel"),
-			checkpointsList=document.getElementById("checkpointsList");
+			checkpointsList=document.getElementById("checkpointsList"),
+			connectButton=document.getElementById("connect");
 			
 		let sideA_image=new Image(),
 			sideB_image=new Image();
@@ -294,6 +296,8 @@
 			
 			refreshMap();
 			//board.dispatchEvent(new CustomEvent("scroll"));
+			
+			console.log("scroll");
 		};
 		
 		logo.addEventListener("click",function(){
@@ -349,11 +353,16 @@
 			ctx.strokeRect(left,top,width,height);
 			
 			document.querySelectorAll(".i2cList-field").forEach((elem)=>elem.fit());
+			
+			console.log("refresh");
 		};
 		
 		board.addEventListener("scroll",refreshMap);
 		
-		window.addEventListener("resize",refreshMap);
+		window.addEventListener("resize",function(){
+			if(infoLayer.clientWidth<=board.clientWidth) infoLayer.classList.add("fitted");
+			refreshMap();
+		});
 		
 		[{elem:mapLeftBorder,top:false},
 		 {elem:mapTopBoreder,top:true},
@@ -372,6 +381,7 @@
 		});
 
 		function moveBorderGen(top){
+			console.log("moveborder");
 			return function moveBorder(event){
 				event.preventDefault();
 				
@@ -409,6 +419,8 @@
 			refreshMap();
 			
 			sideFlag=!sideFlag;
+			
+			console.log("flipside");
 		};
 		
 		async function loaded(){
@@ -474,46 +486,55 @@
 				sideB_heightOffset=sideB_image.width*MARKER_WIDTH/(2*sideB_image.height);
 		
 			for(const [key,value] of Object.entries(data)){
-				let heightOffset=(value.side? sideA_heightOffset:sideB_heightOffset);
+				let heightOffset=(value.side? sideB_heightOffset:sideA_heightOffset);
 				
-				let boardInfoRender=new BoardInfoRender(key,value);
+				let list,
+					setMarkerSize,
+					setFieldSize,
+					markerClass,
+					fieldClass;
 				
-				i2cList.append(boardInfoRender.listItem);
-				infoLayer.append(boardInfoRender.marker,boardInfoRender.field);
+				if(data[key].type==="i2c"){ 
+					setMarkerSize=function(){this.marker.style.width=MARKER_WIDTH+"%";
+											 this.marker.style.top="calc("+value.y+" - "+heightOffset+"%)";
+											 this.marker.style.left="calc("+value.x+" - "+MARKER_WIDTH/2+"%)";};
+					setFieldSize=function(){this.field.style.top="calc("+value.y+" + "+heightOffset+"%)";
+											this.field.style.left="calc("+value.x+" + "+MARKER_WIDTH/2+"%)";
+											this.field.setAttribute("data-top",parseFloat(value.y)+heightOffset);
+											this.field.setAttribute("data-left",parseFloat(value.x)+MARKER_WIDTH/2);};
+					list=i2cList;
+					markerClass="i2cList-marker";
+					fieldClass="i2cList-field";
+				}else if(data[key].type==="checkpoint"){
+					setMarkerSize=function(){this.marker.style.left=value.left;
+											 this.marker.style.right=value.right;
+											 this.marker.style.top=value.top;
+											 this.marker.style.bottom=value.bottom;};
+					setFieldSize=function(){this.field.style.top="calc(100% - "+value.bottom+" + "+heightOffset+"%)";
+											this.field.style.left="calc(100% - "+value.right+" + "+MARKER_WIDTH/2+"%)";
+											this.field.setAttribute("data-top",100-parseFloat(value.bottom)+heightOffset);
+											this.field.setAttribute("data-left",100-parseFloat(value.right)+MARKER_WIDTH/2);};
+					list=checkpointsList;
+					markerClass="ckeckpointsList-marker";
+					fieldClass="ckeckpointsList-field";
+				};
 				
-				boardInfoRender.render(function(){this.marker.style.width=MARKER_WIDTH+"%";
-												  this.marker.style.top="calc("+value.y+" - "+heightOffset+"%)";
-												  this.marker.style.left="calc("+value.x+" - "+MARKER_WIDTH/2+"%)";}.bind(boardInfoRender),"i2cList-marker",
-									   function(){this.field.style.top="calc("+value.y+" + "+heightOffset+"%)";
-												  this.field.style.left="calc("+value.x+" + "+MARKER_WIDTH/2+"%)";
-												  this.field.setAttribute("data-top",parseFloat(value.y)+heightOffset);
-												  this.field.setAttribute("data-left",parseFloat(value.x)+MARKER_WIDTH/2);}.bind(boardInfoRender),"i2cList-field");
-			};
-			
-			for(const [key,value] of Object.entries(checkData)){
-				let heightOffset=(value.side? sideA_heightOffset:sideB_heightOffset);
-			
-				let boardInfoRender=new BoardInfoRender(key,value);
-				
-				checkpointsList.append(boardInfoRender.listItem);
-				infoLayer.append(boardInfoRender.marker,boardInfoRender.field);			
+				let boardInfoRender=new BoardInfoRender(key,value,setMarkerSize,setFieldSize,markerClass,fieldClass);
 
-				boardInfoRender.render(function(){this.marker.style.left=value.left;
-												  this.marker.style.right=value.right;
-												  this.marker.style.top=value.top;
-												  this.marker.style.bottom=value.bottom;}.bind(boardInfoRender),"ckeckpointsList-marker",
-									   function(){this.field.style.top="calc(100% - "+value.bottom+" + "+heightOffset+"%)";
-												  this.field.style.left="calc(100% - "+value.right+" + "+MARKER_WIDTH/2+"%)";
-												  this.field.setAttribute("data-top",100-parseFloat(value.bottom)+heightOffset);
-												  this.field.setAttribute("data-left",100-parseFloat(value.right)+MARKER_WIDTH/2);}.bind(boardInfoRender),"ckeckpointsList-field");
+				list.append(boardInfoRender.listItem);
+				infoLayer.append(boardInfoRender.marker,boardInfoRender.field);			
+				
+				boardInfoRender.render(setMarkerSize,markerClass,setFieldSize,fieldClass);
 			};
 		};
 		
 		class BoardInfoRender{
-			constructor(key,value){
+			constructor(key,value,setMarkerSize,setFieldSize,markerClass,fieldClass){
 				this.listItem=document.createElement("div");
 				this.marker=document.createElement("div");
 				this.field=document.createElement("div");
+				
+				this.field.id=key;
 				
 				this.key=key;
 				this.value=value;
@@ -521,34 +542,39 @@
 				this.height=(value.top&&value.bottom)? 100-parseFloat(value.bottom)-parseFloat(value.top):MARKER_WIDTH;
 				this.x=value.x??parseFloat(value.left)+this.width/2+"%";
 				this.y=value.y??parseFloat(value.top)+this.height/2+"%";
+				
+				this.markerClass=markerClass;
+				this.fieldClass=fieldClass;
+				this.setMarkerSize=setMarkerSize;
+				this.setFieldSize=setFieldSize;
 			};
 			
-			render(setMarkerSize,markerClass,setFieldSize,fieldClass){
+			render(){
 				this.setListItem();
-				this.setMarker(markerClass,setMarkerSize);
-				this.setField(fieldClass,setFieldSize);
+				this.setMarker();
+				this.setField();
 				this.listItemHoverHandler();
 				this.listItemClickHandler();
 				this.markerHoverHandler();
 			};
 		
 			setListItem(){
-				this.listItem.innerHTML=this.key;
+				this.listItem.textContent=this.key;
 				this.listItem.classList.add("cursor-pointer");
 			};
 			
-			setMarker(className,setSize){
-				this.marker.classList.add(className);
+			setMarker(){
+				this.marker.classList.add(this.markerClass);
 				this.marker.classList.add(this.value.side? "sideA":"sideB");
-				setSize();
+				this.setMarkerSize();
 			};
 			
-			setField(className,setSize){
-				this.field.classList.add(className);
+			setField(){
+				this.field.classList.add(this.fieldClass);
 				this.field.classList.add(this.value.side? "sideA":"sideB");
 				this.field.textContent=this.value.text;
 				this.field.style.visibility="hidden";
-				setSize();
+				this.setFieldSize();
 			};
 			
 			listItemHoverHandler(){
@@ -592,12 +618,53 @@
 		
 		
 		
+		const i2cDataFetchAddress=window.location.origin+"/i2cFetch",
+			  goodStateColor="radial-gradient(rgb(0,255,0,1) 30%,rgb(0,0,0,0) 60%)",
+			  badStateColor="radial-gradient(rgb(255,0,0,1) 30%,rgb(0,0,0,0) 60%)",
+			  unknownStateColor="radial-gradient(rgb(150,150,150,1) 30%,rgb(0,0,0,0) 60%)";
 		
-		
-		
-		
-		
-		
+		async function i2cDataFetch(){
+			try{
+				let response=await fetch(i2cDataFetchAddress);
+				
+				if(response.status!==200) {
+					throw new Error("Fetch response status isn't 200!!!");
+				}else{
+					let result=await response.json();
+					
+					for(let id in result){
+						let elem=document.getElementById(id),
+							color=unknownStateColor;
+						
+						elem.textContent="";
+						
+						for(let key in result[id].data){
+							elem.textContent+=key+result[id].data[key]+"\n";
+						};
+						
+						switch(result[id].mark){
+							case "good":
+								color=goodStateColor;
+								break;
+							case "bad":
+								color=badStateColor;
+								break;
+							default:
+						}
+						elem.previousSibling.style.background=color;
+					};
+				};
+			}catch(err){
+				console.log(err);
+				for(let elem of document.getElementsByClassName("i2cList-field")){
+					elem.textContent="...";
+					elem.previousSibling.style.background=unknownStateColor;
+				};
+			}finally{
+				await new Promise(resolve=>setTimeout(resolve,2000));
+				i2cDataFetch();
+			};
+		};
 		
 		
 		
@@ -690,13 +757,36 @@
 
 			//$("#map img").attr("src",image.src);
 
-			let dialog=$("<div>").dialog({
-											dialogClass:"no-close",modal:true,title:"Waiting...",buttons:[{
-																											text:"Cancel",click:function(){
-																																		$(this).dialog("close");}}]}),
-				progressbar=$("<div>").progressbar({value:false});
-			dialog.append(progressbar);
 			
+			<!-- function closeClick(){ -->
+				<!-- $(this).dialog("close"); -->
+				<!-- $("main,header").removeClass("inactive"); -->
+			<!-- }; -->
+			
+			
+			$("#connect").click(async function(){
+			
+				
+				
+			
+				let dialog=$("<div>").dialog({
+											dialogClass:"no-close",
+											modal:true,
+											title:"Waiting...",
+											buttons:[{text:"Cancel",
+													  click:function(){
+															$(this).dialog("close");
+															$("main,header").removeClass("inactive");
+															}
+													}]
+										}),
+				progressbar=$("<div>").progressbar({value:false});
+				dialog.append(progressbar);
+				$("main,header").addClass("inactive");
+				await i2cDataFetch();
+				dialog.dialog("close");
+				$("main,header").removeClass("inactive");
+			});
 			
 		})(jQuery);
 	</script>
